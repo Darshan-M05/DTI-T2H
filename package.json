@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "pdfjs-dist": "^5.2.133",
     "web-vitals": "^4.2.4"
   }
 }

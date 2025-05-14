@@ -5,7 +5,7 @@ import Translator from './components/Translator';
 import Login from './components/Login';
 import Register from './components/Register';
 import HandwritingUpload from './components/HandwritingUpload';
-import { Button } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button, Container } from '@mui/material';
 
 function App() {
   const [token, setToken] = useState(null);
@@ -34,32 +34,36 @@ function App() {
   return (
     <Router>
       <div className="App">
-        <header className="App-header">
-          <h1>Language Translator</h1>
-          {token && (
-            <nav>
-              <Link to="/">Home</Link>
-              <Link to="/custom-handwriting">Customized Handwriting</Link>
-              <Button onClick={handleLogout} color="secondary">
-                Logout
+        <AppBar position="static">
+          <Toolbar>
+            <Typography variant="h6" style={{ flexGrow: 1, textAlign: 'left' }}>
+              Language Translator
+            </Typography>
+            {token && (
+              <>
+                <Button color="inherit" component={Link} to="/">Home</Button>
+                <Button color="inherit" component={Link} to="/custom-handwriting">Customized Handwriting</Button>
+                <Button color="inherit" onClick={handleLogout}>Logout</Button>
+              </>
+            )}
+          </Toolbar>
+        </AppBar>
+        <Container>
+          <main style={{ marginTop: '20px' }}>
+            <Routes>
+              <Route path="/" element={token ? <Translator /> : isRegistering ? <Register onRegister={toggleRegister} /> : <Login onLogin={handleLogin} />} />
+              <Route path="/custom-handwriting" element={<HandwritingUpload />} />
+            </Routes>
+            {!token && (
+              <Button onClick={toggleRegister} color="secondary">
+                {isRegistering ? 'Back to Login' : 'Register'}
               </Button>
-            </nav>
-          )}
-        </header>
-        <main>
-          <Routes>
-            <Route path="/" element={token ? <Translator /> : isRegistering ? <Register onRegister={toggleRegister} /> : <Login onLogin={handleLogin} />} />
-            <Route path="/custom-handwriting" element={<HandwritingUpload />} />
-          </Routes>
-          {!token && (
-            <Button onClick={toggleRegister} color="secondary">
-              {isRegistering ? 'Back to Login' : 'Register'}
-            </Button>
-          )}
-        </main>
+            )}
+          </main>
+        </Container>
       </div>
     </Router>
   );
 }
 
-export default App; 
+export default App;

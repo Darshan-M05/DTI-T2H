@@ -7,39 +7,12 @@ import {
   Button,
   Grid,
   Paper,
-  styled,
   CircularProgress,
   Snackbar,
   Alert,
-  FormControl,
-  InputLabel,
-  Box,
+  Typography
 } from '@mui/material';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
-
-// Replace makeStyles with styled components
-const StyledContainer = styled(Container)(({ theme }) => ({
-  marginTop: theme.spacing(4),
-  marginBottom: theme.spacing(4),
-}));
-
-const StyledPaper = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(3),
-}));
-
-const StyledTextField = styled(TextField)(({ theme }) => ({
-  width: '100%',
-  marginBottom: theme.spacing(2),
-}));
-
-const StyledSelect = styled(Select)(({ theme }) => ({
-  width: '100%',
-  marginBottom: theme.spacing(2),
-}));
-
-const StyledButton = styled(Button)(({ theme }) => ({
-  margin: theme.spacing(2),
-}));
 
 const languages = [
   { code: 'en', name: 'English' },
@@ -56,20 +29,11 @@ const languages = [
   { code: 'ko', name: 'Korean' },
   { code: 'nl', name: 'Dutch' },
   { code: 'pl', name: 'Polish' },
-  { code: 'tr', name: 'Turkish' }
-];
-
-// Update handwriting styles
-const handwritingStyles = [
-  { name: 'Regular Text', value: 'none' },
-  { name: 'Casual Handwriting', value: 'caveat' },
-  { name: 'Elegant Script', value: 'dancing-script' },
-  { name: 'Fun Handwriting', value: 'indie-flower' },
-  { name: 'Natural Handwriting', value: 'homemade-apple' },
-  { name: 'Neat Handwriting', value: 'patrick-hand' },
-  { name: 'Quick Notes', value: 'shadows-into-light' },
-  { name: 'Casual Notes', value: 'covered-by-your-grace' },
-  { name: 'Chalk Style', value: 'rock-salt' }
+  { code: 'tr', name: 'Turkish' },
+  { code: 'sv', name: 'Swedish' },
+  { code: 'fi', name: 'Finnish' },
+  { code: 'no', name: 'Norwegian' },
+  { code: 'da', name: 'Danish' }
 ];
 
 function Translator() {
@@ -79,200 +43,116 @@ function Translator() {
   const [targetLang, setTargetLang] = useState('es');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [selectedStyle, setSelectedStyle] = useState('none');
-  const [fontFamily, setFontFamily] = useState('inherit');
 
   const handleTranslate = async () => {
+    if (!sourceText.trim()) return;
+    setLoading(true);
+    setError('');
     try {
-      setLoading(true);
-      setError('');
-
       const response = await fetch('http://localhost:5000/api/translate', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: sourceText,
-          sourceLang,
-          targetLang,
-          handwritingStyle: selectedStyle
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: sourceText, sourceLang, targetLang }),
       });
-
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Translation failed');
-      }
-
+      if (!response.ok) throw new Error(data.error || 'Translation failed');
       setTranslatedText(data.translatedText);
-      setFontFamily(data.fontFamily);
     } catch (err) {
-      console.error('Frontend error:', err);
-      setError(err.message || 'Translation failed. Please try again.');
+      setError(err.message || 'Translation failed. Try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSwapLanguages = () => {
-    const tempLang = sourceLang;
-    setSourceLang(targetLang);
-    setTargetLang(tempLang);
-    setSourceText(translatedText);
-    setTranslatedText(sourceText);
-  };
+  const handleSpeech = () => {
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = sourceLang;
+    recognition.start();
 
-  // Function to determine the script of the text
-  const getTextScript = (text) => {
-    const scripts = {
-      ja: /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff]/,
-      zh: /[\u4e00-\u9fff\u3400-\u4dbf]/,
-      ko: /[\uac00-\ud7af\u1100-\u11ff]/,
-      ru: /[\u0400-\u04FF]/,
+    recognition.onresult = (event) => {
+      const spokenText = event.results[0][0].transcript;
+      if (spokenText.toLowerCase() === 'translate') {
+        handleTranslate();
+      } else {
+        setSourceText((prev) => prev + (prev ? ' ' : '') + spokenText);
+      }
     };
-
-    for (const [script, regex] of Object.entries(scripts)) {
-      if (regex.test(text)) return script;
-    }
-    return 'en';
-  };
-
-  // Function to get appropriate font size based on script
-  const getFontSize = (text, style) => {
-    if (style === 'none') return 'inherit';
-    const script = getTextScript(text);
-    switch (script) {
-      case 'ja':
-      case 'zh':
-      case 'ko':
-        return '1.5rem';
-      case 'ru':
-        return '1.3rem';
-      default:
-        return '1.25rem';
-    }
   };
 
   return (
-    <StyledContainer maxWidth="md">
-      <StyledPaper>
+    <Container maxWidth="md" style={{ marginTop: '20px' }}>
+      <Typography variant="h4" align="center" gutterBottom>
+        Translator 
+      </Typography>
+      <Typography variant="subtitle1" align="center" gutterBottom>
+        Speak or type text, then translate it instantly
+      </Typography>
+      <Paper style={{ padding: '20px' }}>
         <Grid container spacing={3}>
           <Grid item xs={12} md={5}>
-            <StyledSelect
-              value={sourceLang}
-              onChange={(e) => setSourceLang(e.target.value)}
-            >
+            <Select fullWidth value={sourceLang} onChange={(e) => setSourceLang(e.target.value)}>
               {languages.map((lang) => (
-                <MenuItem key={lang.code} value={lang.code}>
-                  {lang.name}
-                </MenuItem>
+                <MenuItem key={lang.code} value={lang.code}>{lang.name}</MenuItem>
               ))}
-            </StyledSelect>
-            <StyledTextField
+            </Select>
+            <TextField
               multiline
               rows={4}
               variant="outlined"
-              placeholder="Enter text to translate"
+              fullWidth
+              placeholder="Enter or speak text"
               value={sourceText}
               onChange={(e) => setSourceText(e.target.value)}
+              style={{ marginTop: '10px' }}
             />
-          </Grid>
-
-          <Grid item xs={12} md={2} container justifyContent="center" alignItems="center">
-            <StyledButton
+            <Button
               variant="contained"
-              color="primary"
-              onClick={handleSwapLanguages}
-              disabled={loading}
+              color="secondary"
+              fullWidth
+              onClick={handleSpeech}
+              style={{ marginTop: '10px' }}
             >
-              <SwapHorizIcon />
-            </StyledButton>
+              🎤 Speak
+            </Button>
           </Grid>
-
-          <Grid item xs={12} md={5}>
-            <StyledSelect
-              value={targetLang}
-              onChange={(e) => setTargetLang(e.target.value)}
-            >
-              {languages.map((lang) => (
-                <MenuItem key={lang.code} value={lang.code}>
-                  {lang.name}
-                </MenuItem>
-              ))}
-            </StyledSelect>
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Handwriting Style</InputLabel>
-              <Select
-                value={selectedStyle}
-                onChange={(e) => setSelectedStyle(e.target.value)}
-                label="Handwriting Style"
-              >
-                {handwritingStyles.map((style) => (
-                  <MenuItem key={style.value} value={style.value}>
-                    {style.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <StyledTextField
-              multiline
-              rows={4}
-              variant="outlined"
-              placeholder="Translation"
-              value={translatedText}
-              onChange={(e) => setTranslatedText(e.target.value)}
-              sx={{ 
-                fontFamily: fontFamily,
-                fontSize: getFontSize(translatedText, selectedStyle),
-                lineHeight: '1.8',
-                '& .MuiOutlinedInput-input': {
-                  fontFamily: fontFamily,
-                  fontSize: getFontSize(translatedText, selectedStyle),
-                  writingMode: getTextScript(translatedText) === 'ja' || getTextScript(translatedText) === 'zh' ? 'vertical-rl' : 'horizontal-tb',
-                },
-                '& .MuiOutlinedInput-root': {
-                  '& fieldset': {
-                    borderColor: 'rgba(0, 0, 0, 0.23)',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: 'rgba(0, 0, 0, 0.87)',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#1976d2',
-                  },
-                },
-              }}
-              lang={getTextScript(translatedText)}
-              className="handwriting-text"
-            />
-          </Grid>
-
-          <Grid item xs={12} container justifyContent="center">
+          
+          <Grid item xs={12} md={2} container justifyContent="center" alignItems="center">
             <Button
               variant="contained"
               color="primary"
               onClick={handleTranslate}
-              disabled={!sourceText || loading}
+              disabled={loading}
+              style={{ margin: '10px' }}
             >
               {loading ? <CircularProgress size={24} color="inherit" /> : 'Translate'}
             </Button>
           </Grid>
+          
+          <Grid item xs={12} md={5}>
+            <Select fullWidth value={targetLang} onChange={(e) => setTargetLang(e.target.value)}>
+              {languages.map((lang) => (
+                <MenuItem key={lang.code} value={lang.code}>{lang.name}</MenuItem>
+              ))}
+            </Select>
+            <TextField
+              multiline
+              rows={4}
+              variant="outlined"
+              fullWidth
+              placeholder="Translation"
+              value={translatedText}
+              style={{ marginTop: '10px' }}
+              disabled
+            />
+          </Grid>
         </Grid>
-      </StyledPaper>
+      </Paper>
 
-      <Snackbar 
-        open={!!error} 
-        autoHideDuration={6000} 
-        onClose={() => setError('')}
-      >
-        <Alert onClose={() => setError('')} severity="error">
-          {error}
-        </Alert>
+      <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError('')}>
+        <Alert onClose={() => setError('')} severity="error">{error}</Alert>
       </Snackbar>
-    </StyledContainer>
+    </Container>
   );
 }
 
-export default Translator; 
+export default Translator;
