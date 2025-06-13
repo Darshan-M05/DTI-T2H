@@ -1,6 +1,10 @@
 {
   "dependencies": {
-    "pdfjs-dist": "^5.2.133",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.1",
+    "mammoth": "^1.9.0",
+    "pdfjs-dist": "^2.16.105",
+    "recharts": "^2.15.3",
     "web-vitals": "^4.2.4"
   }
 }

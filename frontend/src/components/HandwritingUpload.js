@@ -1,6 +1,8 @@
 import React, { useState, useRef } from 'react';
 import '../App.css';
 import { Container, TextField, Button, Typography, Paper, Grid } from '@mui/material';
+import FileUpload from './FileUpload';
+import HandwritingDownload from './HandwritingDownload';
 
 function HandwritingUpload() {
   const [fontFile, setFontFile] = useState(null);
@@ -16,36 +18,52 @@ function HandwritingUpload() {
   };
 
   const renderText = () => {
+    const start = performance.now();
+
     if (fontFile && text && canvasRef.current) {
       const reader = new FileReader();
       reader.onload = (e) => {
         const font = new FontFace('CustomFont', e.target.result);
-        font.load().then(() => {
-          document.fonts.add(font);
+        font.load().then((loadedFont) => {
+          document.fonts.add(loadedFont);
+
           const ctx = canvasRef.current.getContext('2d');
-          ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
           ctx.font = '48px CustomFont';
-          ctx.textBaseline = 'top';
 
           const maxWidth = canvasRef.current.width - 20;
           const lineHeight = 55;
-          let x = 10;
-          let y = 10;
           const words = text.split(' ');
+
           let line = '';
+          let lines = [];
 
           for (let i = 0; i < words.length; i++) {
             let testLine = line + words[i] + ' ';
             let testWidth = ctx.measureText(testLine).width;
             if (testWidth > maxWidth && i > 0) {
-              ctx.fillText(line, x, y);
+              lines.push(line);
               line = words[i] + ' ';
-              y += lineHeight;
             } else {
               line = testLine;
             }
           }
-          ctx.fillText(line, x, y);
+          lines.push(line);
+
+          const requiredHeight = lines.length * lineHeight + 20;
+          canvasRef.current.height = requiredHeight;
+
+          ctx.font = '48px CustomFont';
+          ctx.textBaseline = 'top';
+          ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+
+          let y = 10;
+          for (let l of lines) {
+            ctx.fillText(l, 10, y);
+            y += lineHeight;
+          }
+
+          const end = performance.now();
+          console.log(`Rendered handwriting in ${(end - start).toFixed(2)} ms`);
         });
       };
       reader.readAsArrayBuffer(fontFile);
@@ -53,11 +71,16 @@ function HandwritingUpload() {
   };
 
   const downloadImage = () => {
+    const start = performance.now();
+
     if (canvasRef.current) {
       const link = document.createElement('a');
       link.download = 'text-image.png';
       link.href = canvasRef.current.toDataURL();
       link.click();
+
+      const end = performance.now();
+      console.log(`Downloaded handwriting image in ${(end - start).toFixed(2)} ms`);
     }
   };
 
@@ -65,7 +88,7 @@ function HandwritingUpload() {
     const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
     recognition.lang = 'en-US';
     recognition.start();
-  
+
     recognition.onresult = (event) => {
       const spokenText = event.results[0][0].transcript.toLowerCase();
       if (spokenText === 'render') {
@@ -87,6 +110,8 @@ function HandwritingUpload() {
         <Grid container spacing={3} justifyContent="center">
           <Grid item xs={12} sm={6}>
             <input type="file" accept=".ttf" onChange={handleFileChange} style={{ marginBottom: '10px' }} />
+            <FileUpload onTextExtracted={setText} />
+
             <TextField
               multiline
               rows={4}
@@ -114,15 +139,23 @@ function HandwritingUpload() {
             </Button>
           </Grid>
           <Grid item xs={12} sm={6}>
-            <canvas ref={canvasRef} width="600" height="300" style={{ border: '1px solid black', width: '100%', marginTop: '10px' }}></canvas>
-            <Button
-              variant="contained"
-              color="secondary"
-              onClick={downloadImage}
-              style={{ width: '120px', marginTop: '10px' }}
-            >
-              Download Image
-            </Button>
+            <canvas
+              ref={canvasRef}
+              width="600"
+              height="300"
+              style={{ border: '1px solid black', width: '100%', marginTop: '10px' }}
+            ></canvas>
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: '10px' }}>
+              <Button
+                variant="contained"
+                color="secondary"
+                onClick={downloadImage}
+                style={{ width: '160px' }}
+              >
+                Download Image
+              </Button>
+              <HandwritingDownload canvasRef={canvasRef} />
+            </div>
           </Grid>
         </Grid>
       </Paper>

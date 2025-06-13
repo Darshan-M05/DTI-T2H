@@ -30,7 +30,7 @@ function Login({ onLogin }) {
         <h2>Login</h2>
         <TextField
           label="Username"
-          variant="standard"
+          variant="outlined"
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           fullWidth
